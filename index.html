@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SIMS: Social Impact Mapping Simulation</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%233a4a5c'/%3E%3Crect x='17' y='4' width='11' height='11' fill='white'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%233a4a5c'/%3E%3Crect x='17' y='4' width='11' height='11' fill='%23f5f5f0'/%3E%3C/svg%3E">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -19,7 +19,8 @@
     /* ── Nav ── */
     nav {
       width: 100%;
-      background: #1a1a2e;
+      background: #f5f5f0;
+      border-bottom: 1px solid #ddd;
       display: flex;
       align-items: center;
       padding: 0 24px;
@@ -27,14 +28,14 @@
       gap: 24px;
     }
     nav .brand {
-      color: white;
+      color: #1a1a2e;
       font-size: 18px;
       font-weight: bold;
       letter-spacing: 1px;
       margin-right: 16px;
     }
     nav a {
-      color: #aac4ff;
+      color: #555;
       text-decoration: none;
       font-size: 14px;
       padding: 6px 12px;
@@ -42,7 +43,7 @@
       cursor: pointer;
       transition: background 0.15s;
     }
-    nav a.active, nav a:hover { background: rgba(255,255,255,0.12); color: white; }
+    nav a.active, nav a:hover { background: rgba(0,0,0,0.07); color: #1a1a2e; }
 
     /* ── Pages ── */
     .page { display: none; width: 100%; flex: 1; justify-content: center; align-items: center; }
@@ -117,7 +118,7 @@
 <nav>
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" style="flex-shrink:0">
     <rect width="32" height="32" fill="#3a4a5c"/>
-    <rect x="17" y="4" width="11" height="11" fill="white"/>
+    <rect x="17" y="4" width="11" height="11" fill="#f5f5f0"/>
   </svg>
   <span class="brand">SIMS</span>
   <a id="nav-playground" class="active" onclick="showPage('playground')">Playground</a>
