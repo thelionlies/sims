@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SIMS: Social Impact Mapping Simulation</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%233a4a5c'/%3E%3Crect x='18' y='4' width='10' height='10' fill='white'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%233a4a5c'/%3E%3Crect x='18' y='4' width='10' height='10' fill='none'/%3E%3C/svg%3E">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -161,8 +161,8 @@
       4. Look at the dynamics over time.
     </div>
     <hr>
-    <div class="form-row"><label>Red agents:</label><input type="text" id="redField" value="20"></div>
-    <div class="form-row"><label>Blue agents:</label><input type="text" id="blueField" value="20"></div>
+    <div class="form-row"><label>Red agents:</label><input type="text" id="redField" value="5"></div>
+    <div class="form-row"><label>Blue agents:</label><input type="text" id="blueField" value="5"></div>
     <div class="form-row"><label>Gray agents:</label><input type="text" id="grayField" value="10"></div>
     <div class="section-title">Sex Distribution</div>
     <input type="range" id="sexSlider" min="0" max="100" value="50">
@@ -731,8 +731,8 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   agents = [];
   elapsedSeconds = 0;
   document.getElementById('clockLabel').textContent = 'Time: 0s';
-  document.getElementById('redField').value  = '20';
-  document.getElementById('blueField').value = '20';
+  document.getElementById('redField').value  = '5';
+  document.getElementById('blueField').value = '5';
   document.getElementById('grayField').value = '10';
   document.getElementById('sexSlider').value      = '50';
   document.getElementById('youngSlider').value    = '33';
@@ -741,9 +741,9 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   speedIdx = 2;
   speedMultiplier = 1.0;
   document.getElementById('speedLabel').textContent = 'Speed: 1x';
-  document.getElementById('redCount').textContent  = '0';
-  document.getElementById('blueCount').textContent = '0';
-  document.getElementById('grayCount').textContent = '0';
+  document.getElementById('redCount').textContent  = '5';
+  document.getElementById('blueCount').textContent = '5';
+  document.getElementById('grayCount').textContent = '10';
   updateAgeDisplay();
   render();
 });
