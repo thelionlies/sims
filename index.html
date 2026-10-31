@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SIMS: Social Impact Mapping Simulation</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='18' r='13' fill='%23C8860A'/%3E%3Ccircle cx='16' cy='15' r='9' fill='%23F5C842'/%3E%3Cpolygon points='9,10 5,3 13,8' fill='%23F5C842'/%3E%3Cpolygon points='23,10 27,3 19,8' fill='%23F5C842'/%3E%3Ccircle cx='13' cy='13.5' r='1.5' fill='%23222'/%3E%3Ccircle cx='19' cy='13.5' r='1.5' fill='%23222'/%3E%3Cellipse cx='16' cy='17' rx='2.2' ry='1.4' fill='%23C07840'/%3E%3Cpath d='M13.5 18.5 Q16 20.5 18.5 18.5' stroke='%23222' stroke-width='0.9' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -114,6 +115,22 @@
 <body>
 
 <nav>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" style="flex-shrink:0">
+    <!-- mane -->
+    <circle cx="16" cy="18" r="13" fill="#C8860A"/>
+    <!-- head -->
+    <circle cx="16" cy="15" r="9" fill="#F5C842"/>
+    <!-- ears -->
+    <polygon points="9,10 5,3 13,8" fill="#F5C842"/>
+    <polygon points="23,10 27,3 19,8" fill="#F5C842"/>
+    <!-- eyes -->
+    <circle cx="13" cy="13.5" r="1.5" fill="#222"/>
+    <circle cx="19" cy="13.5" r="1.5" fill="#222"/>
+    <!-- nose -->
+    <ellipse cx="16" cy="17" rx="2.2" ry="1.4" fill="#C07840"/>
+    <!-- mouth -->
+    <path d="M13.5 18.5 Q16 20.5 18.5 18.5" stroke="#222" stroke-width="0.9" fill="none" stroke-linecap="round"/>
+  </svg>
   <span class="brand">SIMS</span>
   <a id="nav-playground" class="active" onclick="showPage('playground')">Playground</a>
   <a id="nav-about" onclick="showPage('about')">About</a>
