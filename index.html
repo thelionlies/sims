@@ -50,12 +50,6 @@
     .page.active { display: flex; }
 
     /* ── Playground ── */
-    #page-playground { padding: 24px 0; }
-    #app {
-      display: flex;
-      background: white;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.25);
-    }
 
     /* ── About ── */
     #page-about {
@@ -81,8 +75,19 @@
     .swatch { width: 16px; height: 16px; border-radius: 3px; }
     .ref { font-size: 12px; color: #777; border-left: 3px solid #ddd; padding-left: 12px; margin-top: 8px; line-height: 1.6; }
     canvas { display: block; }
+    #page-playground { padding: 16px 0; align-items: flex-start; }
+    #app {
+      display: flex;
+      flex-direction: row;
+      background: white;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+      width: 800px;
+      max-width: 100%;
+    }
+    #canvas { width: 600px; max-width: 100%; height: auto; flex-shrink: 0; }
     #panel {
       width: 200px;
+      flex-shrink: 0;
       padding: 10px;
       display: flex;
       flex-direction: column;
@@ -96,31 +101,59 @@
     hr { border: none; border-top: 1px solid #ccc; margin: 2px 0; }
     .timer-row { text-align: center; font-size: 11px; }
     .speed-row { display: flex; align-items: center; justify-content: center; gap: 4px; }
-    .speed-row button { width: 22px; height: 22px; padding: 0; font-size: 12px; cursor: pointer; }
+    .speed-row button { width: 36px; height: 36px; padding: 0; font-size: 14px; cursor: pointer; }
     .counts-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; text-align: center; gap: 2px; }
     .count-label { font-size: 10px; font-weight: bold; }
-    .btn-row { display: flex; justify-content: center; gap: 4px; }
-    .btn-row button { cursor: pointer; padding: 4px 8px; font-size: 14px; }
+    .btn-row { display: flex; justify-content: center; gap: 6px; }
+    .btn-row button { cursor: pointer; padding: 8px 14px; font-size: 16px; min-width: 44px; min-height: 44px; }
     .instructions { font-size: 10px; line-height: 1.5; }
     .form-row { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
-    .form-row input[type=text] { width: 55px; font-size: 11px; padding: 1px 3px; }
-    .section-title { text-align: center; font-weight: bold; margin-top: 2px; }
-    input[type=range] { width: 100%; cursor: pointer; }
+    .form-row input[type=text] { width: 55px; font-size: 13px; padding: 4px; }
+    .section-title { text-align: center; font-weight: bold; margin-top: 4px; }
+    input[type=range] { width: 100%; cursor: pointer; height: 24px; }
     .slider-labels { display: flex; justify-content: space-between; font-size: 10px; color: #555; }
     .influence-row { display: flex; align-items: center; gap: 4px; }
     .influence-row span { font-size: 10px; white-space: nowrap; }
     .influence-row input { flex: 1; }
     #ageDisplay { text-align: center; font-size: 10px; font-weight: bold; color: #333; }
+
+    /* ── Mobile ── */
+    @media (max-width: 700px) {
+      #page-playground { padding: 0; align-items: stretch; }
+      #app { flex-direction: column; width: 100%; box-shadow: none; }
+      #canvas { width: 100% !important; height: auto !important; }
+      #panel {
+        width: 100%;
+        border-left: none;
+        border-top: 1px solid #ccc;
+        font-size: 13px;
+        padding: 14px;
+        gap: 6px;
+      }
+      #panel h2 { font-size: 22px; }
+      .desc { font-size: 12px; }
+      .timer-row { font-size: 14px; }
+      .speed-row button { width: 44px; height: 44px; font-size: 18px; }
+      .count-label { font-size: 12px; }
+      .btn-row button { font-size: 20px; padding: 10px 18px; }
+      .instructions { font-size: 12px; }
+      .form-row input[type=text] { width: 70px; font-size: 14px; }
+      .section-title { font-size: 13px; }
+      .slider-labels { font-size: 11px; }
+      #ageDisplay { font-size: 12px; }
+      .about-card { padding: 24px 18px; }
+      .legend { flex-wrap: wrap; gap: 12px; }
+    }
   </style>
 </head>
 <body>
 
 <nav>
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" style="flex-shrink:0">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" style="flex-shrink:0;cursor:pointer" onclick="showPage('playground')">
     <rect x="2" y="2" width="20" height="20" fill="none" stroke="#3d4f66" stroke-width="1.5"/>
     <path d="M2,2 L12,2 L12,12 L22,12 L22,22 L2,22 Z" fill="#3d4f66"/>
   </svg>
-  <span class="brand">SIMS</span>
+  <span class="brand" style="cursor:pointer" onclick="showPage('playground')">SIMS</span>
   <a id="nav-playground" class="active" onclick="showPage('playground')">Playground</a>
   <a id="nav-about" onclick="showPage('about')">About</a>
 </nav>
@@ -818,7 +851,7 @@ render();
     </ul>
 
     <h2>Background Scene</h2>
-    <p style="margin-bottom:10px">The simulation takes place in a hand-drawn scene built entirely from geometric primitives.</p>
+    <p style="margin-bottom:10px">The simulation takes place in a hand-drawn Rizal Park, built entirely from geometric primitives.</p>
     <div style="overflow:hidden;border:1px solid #eee;border-radius:4px;margin-bottom:8px;line-height:0">
       <canvas id="bgPreview" width="600" height="600" style="width:100%;max-width:600px;display:block"></canvas>
     </div>
