@@ -793,9 +793,9 @@ render();
 
     <h2>Agent Colors</h2>
     <div class="legend">
-      <div class="legend-item"><div class="swatch" style="background:#B63C27"></div> Red — Party A</div>
-      <div class="legend-item"><div class="swatch" style="background:#2D61B4"></div> Blue — Party B</div>
-      <div class="legend-item"><div class="swatch" style="background:#808080"></div> Gray — Undecided</div>
+      <div class="legend-item"><div class="swatch" style="background:#B63C27"></div> Red (Party A)</div>
+      <div class="legend-item"><div class="swatch" style="background:#2D61B4"></div> Blue (Party B)</div>
+      <div class="legend-item"><div class="swatch" style="background:#808080"></div> Gray (Undecided)</div>
     </div>
 
     <h2>How It Works</h2>
@@ -809,17 +809,23 @@ render();
 
     <h2>Controls</h2>
     <ul>
-      <li><strong>Red / Blue / Gray agents</strong> — set starting counts (max 60 total).</li>
-      <li><strong>Sex Distribution</strong> — proportion of male vs. female agents.</li>
-      <li><strong>Age Distribution</strong> — proportion of young, middle-aged, and old agents.</li>
-      <li><strong>Influence Scale</strong> — balance between age-based and sex-based influence weight.</li>
-      <li><strong>▶ / ⏸ / ⟲</strong> — play, pause, and reset the simulation.</li>
-      <li><strong>← →</strong> — adjust simulation speed (0.5× to 4×).</li>
+      <li><strong>Red / Blue / Gray agents</strong>: set starting counts (max 60 total).</li>
+      <li><strong>Sex Distribution</strong>: proportion of male vs. female agents.</li>
+      <li><strong>Age Distribution</strong>: proportion of young, middle-aged, and old agents.</li>
+      <li><strong>Influence Scale</strong>: balance between age-based and sex-based influence weight.</li>
+      <li><strong>▶ / ⏸ / ⟲</strong>: play, pause, and reset the simulation.</li>
+      <li><strong>← →</strong>: adjust simulation speed (0.5× to 4×).</li>
     </ul>
 
+    <h2>Background Scene</h2>
+    <p style="margin-bottom:10px">The simulation takes place in a hand-drawn scene built entirely from geometric primitives.</p>
+    <div style="overflow:hidden;border:1px solid #eee;border-radius:4px;margin-bottom:8px;line-height:0">
+      <canvas id="bgPreview" width="600" height="600" style="width:100%;max-width:600px;display:block"></canvas>
+    </div>
+
     <h2>Character Catalogue</h2>
-    <p style="margin-bottom:12px">Each agent is rendered from geometric shapes — a distinct look per age and sex combination.</p>
-    <div id="catalogue" style="display:flex;flex-wrap:wrap;gap:20px;margin-bottom:8px"></div>
+    <p style="margin-bottom:12px">Each agent is rendered from geometric shapes, with a distinct look per age, sex, and political alignment.</p>
+    <div id="catalogue" style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:8px;justify-content:center"></div>
 
     <h2>Reference</h2>
     <p class="ref">Nowak, A., Szamrej, J., &amp; Latané, B. (1990). From private attitude to public opinion: A dynamic theory of social impact. <em>Psychological Review, 97</em>(3), 362–376.</p>
@@ -837,38 +843,71 @@ render();
 </div>
 
 <script>
-const CATALOGUE = [
-  { sex: 'M', age: 'Y', color: COL_RED,  label: 'Young Male' },
-  { sex: 'F', age: 'Y', color: COL_BLUE, label: 'Young Female' },
-  { sex: 'M', age: 'M', color: COL_RED,  label: 'Middle-aged Male' },
-  { sex: 'F', age: 'M', color: COL_BLUE, label: 'Middle-aged Female' },
-  { sex: 'M', age: 'O', color: COL_GRAY, label: 'Elder Male' },
-  { sex: 'F', age: 'O', color: COL_GRAY, label: 'Elder Female' },
+const CHAR_TYPES = [
+  { sex: 'M', age: 'Y', label: 'Young Male' },
+  { sex: 'F', age: 'Y', label: 'Young Female' },
+  { sex: 'M', age: 'M', label: 'Middle-aged Male' },
+  { sex: 'F', age: 'M', label: 'Middle-aged Female' },
+  { sex: 'M', age: 'O', label: 'Elder Male' },
+  { sex: 'F', age: 'O', label: 'Elder Female' },
 ];
+const CHAR_COLORS = [
+  { color: COL_RED,  name: 'Red' },
+  { color: COL_BLUE, name: 'Blue' },
+  { color: COL_GRAY, name: 'Gray' },
+];
+
+function renderCharCanvas(sex, age, color) {
+  const c = document.createElement('canvas');
+  c.width = 46; c.height = 66;
+  const savedCtx = ctx;
+  ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, 46, 66);
+  ctx.save();
+  ctx.translate(46/2 - AGENT_W/2, 6);
+  ctx.scale(SKIN_SCALE, SKIN_SCALE);
+  drawSkin(sex, age, color);
+  ctx.restore();
+  ctx = savedCtx;
+  return c;
+}
 
 function renderCatalogue() {
   const container = document.getElementById('catalogue');
-  if (container.childElementCount > 0) return; // already rendered
+  if (container.childElementCount > 0) return;
+
+  // Background preview
   const savedCtx = ctx;
-  CATALOGUE.forEach(({ sex, age, color, label }) => {
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px';
-    const c = document.createElement('canvas');
-    c.width = 50; c.height = 70;
-    ctx = c.getContext('2d');
-    ctx.clearRect(0, 0, 50, 70);
-    ctx.save();
-    ctx.translate(50/2 - AGENT_W/2, 8);
-    ctx.scale(SKIN_SCALE, SKIN_SCALE);
-    drawSkin(sex, age, color);
-    ctx.restore();
+  ctx = document.getElementById('bgPreview').getContext('2d');
+  drawBackground();
+  ctx = savedCtx;
+
+  // Characters: one card per type, 3 color variants inside
+  CHAR_TYPES.forEach(({ sex, age, label }) => {
+    const card = document.createElement('div');
+    card.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px';
+
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:2px';
+
+    CHAR_COLORS.forEach(({ color, name }) => {
+      const cell = document.createElement('div');
+      cell.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px';
+      cell.appendChild(renderCharCanvas(sex, age, color));
+      const dot = document.createElement('div');
+      dot.style.cssText = `width:8px;height:8px;border-radius:50%;background:${color};`;
+      cell.appendChild(dot);
+      row.appendChild(cell);
+    });
+
     const lbl = document.createElement('div');
     lbl.textContent = label;
-    lbl.style.cssText = 'font-size:10px;color:#555;text-align:center';
-    wrap.appendChild(c); wrap.appendChild(lbl);
-    container.appendChild(wrap);
+    lbl.style.cssText = 'font-size:10px;color:#555;text-align:center;margin-top:2px';
+
+    card.appendChild(row);
+    card.appendChild(lbl);
+    container.appendChild(card);
   });
-  ctx = savedCtx;
 }
 
 function showPage(name) {
