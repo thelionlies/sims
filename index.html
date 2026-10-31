@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIMS: Social Impact Mapping Simulation</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #e8e8e8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    #app {
+      display: flex;
+      background: white;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+    }
+    canvas { display: block; }
+    #panel {
+      width: 200px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      border-left: 1px solid #ccc;
+      font-size: 11px;
+      overflow-y: auto;
+    }
+    #panel h2 { text-align: center; font-size: 20px; font-weight: bold; }
+    .desc { text-align: center; font-size: 10px; line-height: 1.4; }
+    hr { border: none; border-top: 1px solid #ccc; margin: 2px 0; }
+    .timer-row { text-align: center; font-size: 11px; }
+    .speed-row { display: flex; align-items: center; justify-content: center; gap: 4px; }
+    .speed-row button { width: 22px; height: 22px; padding: 0; font-size: 12px; cursor: pointer; }
+    .counts-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; text-align: center; gap: 2px; }
+    .count-label { font-size: 10px; font-weight: bold; }
+    .btn-row { display: flex; justify-content: center; gap: 4px; }
+    .btn-row button { cursor: pointer; padding: 4px 8px; font-size: 14px; }
+    .instructions { font-size: 10px; line-height: 1.5; }
+    .form-row { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
+    .form-row input[type=text] { width: 55px; font-size: 11px; padding: 1px 3px; }
+    .section-title { text-align: center; font-weight: bold; margin-top: 2px; }
+    input[type=range] { width: 100%; cursor: pointer; }
+    .slider-labels { display: flex; justify-content: space-between; font-size: 10px; color: #555; }
+    .influence-row { display: flex; align-items: center; gap: 4px; }
+    .influence-row span { font-size: 10px; white-space: nowrap; }
+    .influence-row input { flex: 1; }
+    #ageDisplay { text-align: center; font-size: 10px; font-weight: bold; color: #333; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <canvas id="canvas" width="600" height="600"></canvas>
+  <div id="panel">
+    <h2>SIMS</h2>
+    <p class="desc">Social Impact Mapping Simulation<br>Based from the study of Nowak, Szamrej, &amp; Latané (1990)</p>
+    <hr>
+    <div class="timer-row" id="clockLabel">Time: 0s</div>
+    <div class="speed-row">
+      <button id="speedLeft">←</button>
+      <span id="speedLabel">Speed: 1x</span>
+      <button id="speedRight">→</button>
+    </div>
+    <hr>
+    <div class="counts-grid">
+      <div class="count-label" style="color:#B63C27">Red</div>
+      <div class="count-label" style="color:#2D61B4">Blue</div>
+      <div class="count-label" style="color:#808080">Gray</div>
+      <div id="redCount">0</div>
+      <div id="blueCount">0</div>
+      <div id="grayCount">0</div>
+    </div>
+    <div class="btn-row">
+      <button id="playBtn">▶</button>
+      <button id="pauseBtn">⏸</button>
+      <button id="resetBtn">⟲</button>
+    </div>
+    <hr>
+    <div class="instructions">
+      Simulate how political influence flows around us!<br>
+      1. Set demographic ratio below.<br>
+      2. Click ▶ to start.<br>
+      3. Adjust speed with ← and →.<br>
+      4. Look at the dynamics over time.
+    </div>
+    <hr>
+    <div class="form-row"><label>Red agents:</label><input type="text" id="redField" value="20"></div>
+    <div class="form-row"><label>Blue agents:</label><input type="text" id="blueField" value="20"></div>
+    <div class="form-row"><label>Gray agents:</label><input type="text" id="grayField" value="10"></div>
+    <div class="section-title">Sex Distribution</div>
+    <input type="range" id="sexSlider" min="0" max="100" value="50">
+    <div class="slider-labels"><span>Male</span><span>Female</span></div>
+    <div class="section-title">Age Distribution</div>
+    <input type="range" id="youngSlider" min="0" max="100" value="33">
+    <div class="slider-labels"><span>Young</span><span>Middle-age</span></div>
+    <input type="range" id="middleSlider" min="0" max="100" value="33">
+    <div class="slider-labels"><span>Middle-age</span><span>Old</span></div>
+    <div id="ageDisplay">Young/Middle/Old: 33/33/34</div>
+    <div class="section-title">Influence Scale</div>
+    <div class="influence-row">
+      <span>Age</span>
+      <input type="range" id="influenceSlider" min="0" max="100" value="50">
+      <span>Sex</span>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ─── Canvas & Constants ───────────────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+const SKIN_SCALE = 0.7;
+const AGENT_W = 30 * SKIN_SCALE;   // ~21
+const AGENT_H = 62 * SKIN_SCALE;   // ~43.4
+
+const COL_RED  = '#B63C27';
+const COL_BLUE = '#2D61B4';
+const COL_GRAY = '#808080';
+
+const PLT = { x: 10, y: 10, w: 580, h: 580 };
+
+// ─── Drawing Primitives (operate on global ctx) ───────────────────────────────
+function circ(x, y, d, c) {
+  ctx.beginPath();
+  ctx.arc(x + d / 2, y + d / 2, d / 2, 0, Math.PI * 2);
+  ctx.fillStyle = c;
+  ctx.fill();
+}
+
+function fillRect(x, y, w, h, c) {
+  ctx.fillStyle = c;
+  ctx.fillRect(x, y, w, h);
+}
+
+function tri(x1, y1, x2, y2, x3, y3, c) {
+  ctx.beginPath();
+  ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.lineTo(x3, y3);
+  ctx.closePath();
+  ctx.fillStyle = c;
+  ctx.fill();
+}
+
+// upper-half ellipse (bounding box top-left at x,y)
+function semi(x, y, w, h, c) {
+  const cx = x + w / 2, cy = y + h / 2, rx = w / 2, ry = h / 2;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, Math.PI, 0, true);
+  ctx.closePath();
+  ctx.fillStyle = c;
+  ctx.fill();
+}
+
+// stroke arc, Java-style angles (0=right, CCW positive, screen y-down → visually CW)
+function arcStroke(x, y, w, h, startDeg, extDeg, sw, c) {
+  const cx = x + w / 2, cy = y + h / 2, rx = w / 2, ry = h / 2;
+  ctx.beginPath();
+  if (Math.abs(extDeg) >= 360) {
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+  } else {
+    ctx.ellipse(cx, cy, rx, ry, 0,
+      -startDeg * Math.PI / 180,
+      -(startDeg + extDeg) * Math.PI / 180, true);
+  }
+  ctx.strokeStyle = c; ctx.lineWidth = sw; ctx.stroke();
+}
+
+function ln(x1, y1, x2, y2, w, c) {
+  ctx.beginPath();
+  ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+  ctx.strokeStyle = c; ctx.lineWidth = w; ctx.stroke();
+}
+
+// Path shape builder
+function makePath(strokeC, fillC, filled, sw) {
+  return {
+    cmds: [],
+    moveTo(x, y)  { this.cmds.push(['M', x, y]); },
+    lineTo(x, y)  { this.cmds.push(['L', x, y]); },
+    curveTo(cp1x, cp1y, cp2x, cp2y, x, y) {
+      this.cmds.push(['C', cp1x, cp1y, cp2x, cp2y, x, y]);
+    },
+    closePath()   { this.cmds.push(['Z']); },
+    draw() {
+      ctx.beginPath();
+      for (const c of this.cmds) {
+        if      (c[0] === 'M') ctx.moveTo(c[1], c[2]);
+        else if (c[0] === 'L') ctx.lineTo(c[1], c[2]);
+        else if (c[0] === 'C') ctx.bezierCurveTo(c[1],c[2],c[3],c[4],c[5],c[6]);
+        else if (c[0] === 'Z') ctx.closePath();
+      }
+      if (filled) { ctx.fillStyle = fillC; ctx.fill(); }
+      if (sw > 0) { ctx.strokeStyle = strokeC; ctx.lineWidth = sw; ctx.stroke(); }
+    }
+  };
+}
+
+// ─── Background ───────────────────────────────────────────────────────────────
+function drawBackground() {
+  // Ground
+  fillRect(0, 0, 600, 600, '#E5D5BC');
+
+  // Grid
+  const gc = 'rgba(134,118,93,0.2)';
+  for (let x = 0; x <= 600; x += 40) ln(x, 0, x, 600, 2, gc);
+  for (let y = 0; y <= 600; y += 40) ln(0, y, 600, y, 2, gc);
+
+  // Road
+  fillRect(0, 565, 600, 35, '#2A2A2A');
+  ln(0, 575, 600, 575, 3, 'yellow');
+  ln(0, 585, 600, 585, 3, 'yellow');
+
+  // Grass near road
+  fillRect(60, 500, 180, 50, '#595E08');
+  fillRect(360, 500, 180, 50, '#595E08');
+
+  // Small grass patches
+  const sg = '#475C24';
+  [[255,480],[290,480],[325,480],[255,450],[290,450],[325,450]]
+    .forEach(([x,y]) => fillRect(x, y, 20, 10, sg));
+
+  // Brick paths
+  fillRect(60, 0, 30, 320, '#D8926B');
+  fillRect(510, 0, 30, 320, '#D8926B');
+
+  // Left grass area
+  const lg = makePath('#4C5022', '#A3BB59', true, 4.0);
+  lg.moveTo(90,0); lg.lineTo(90,320); lg.lineTo(120,350); lg.lineTo(200,350);
+  lg.lineTo(200,290); lg.lineTo(260,290); lg.lineTo(260,160); lg.lineTo(230,130);
+  lg.lineTo(230,100); lg.lineTo(200,100); lg.lineTo(200,60); lg.lineTo(230,60);
+  lg.lineTo(230,30); lg.lineTo(260,10); lg.lineTo(260,0); lg.closePath();
+  lg.draw();
+
+  // Right grass area
+  const rg = makePath('#4C5022', '#A3BB59', true, 4.0);
+  rg.moveTo(510,0); rg.lineTo(510,320); rg.lineTo(480,350); rg.lineTo(400,350);
+  rg.lineTo(400,290); rg.lineTo(340,290); rg.lineTo(340,160); rg.lineTo(370,130);
+  rg.lineTo(370,100); rg.lineTo(400,100); rg.lineTo(400,60); rg.lineTo(370,60);
+  rg.lineTo(370,30); rg.lineTo(340,10); rg.lineTo(340,0); rg.closePath();
+  rg.draw();
+
+  // Flagpole base (concentric squares)
+  fillRect(250, 320, 100, 100, '#574A1B');
+  fillRect(260, 330, 80, 80, '#F9F5E9');
+  fillRect(280, 350, 40, 40, '#444039');
+
+  // Flag blue
+  const fb = makePath('#000000', '#1E419B', true, 0.5);
+  fb.moveTo(302,285); fb.curveTo(320,280,340,290,352,280);
+  fb.lineTo(352,290); fb.lineTo(302,295); fb.closePath();
+  fb.draw();
+
+  // Flag red
+  const fr = makePath('#000000', '#E03C44', true, 0.5);
+  fr.moveTo(300,305); fr.curveTo(315,296,328,310,350,299);
+  fr.lineTo(352,290); fr.lineTo(302,295); fr.closePath();
+  fr.draw();
+
+  // White triangle on flag
+  tri(302,285, 321,293, 300,305, 'white');
+
+  // Yellow sun circles on flag
+  circ(307,289, 3, '#FBDC57');
+  circ(307,296, 3, '#FBDC57');
+  circ(315,292, 3, '#FBDC57');
+  circ(309,291, 5, '#FBDC57');
+
+  // Flagpole
+  ln(300,370, 303,285, 7, '#A49C8E');
+
+  // Monument base
+  const mb = makePath('#B28E6A', '#C6AD85', true, 3.0);
+  mb.moveTo(260,100); mb.lineTo(260,60); mb.lineTo(280,40); mb.lineTo(320,40);
+  mb.lineTo(340,60); mb.lineTo(340,100); mb.lineTo(320,120); mb.lineTo(280,120);
+  mb.closePath(); mb.draw();
+
+  fillRect(210,70,10,20,'white');
+  fillRect(380,70,10,20,'white');
+
+  // Monument proper
+  const mp = makePath('#AD8965', '#F4E8CD', true, 3.0);
+  mp.moveTo(280,70); mp.lineTo(280,90); mp.lineTo(290,100); mp.lineTo(310,100);
+  mp.lineTo(320,90); mp.lineTo(320,70); mp.lineTo(310,60); mp.lineTo(290,60);
+  mp.closePath(); mp.draw();
+
+  // Rizal statue
+  const rz = makePath('#808080', '#6F684C', true, 1.0);
+  rz.moveTo(290,85); rz.lineTo(295,40); rz.lineTo(305,40);
+  rz.lineTo(310,85); rz.closePath(); rz.draw();
+
+  tri(295,40, 300,30, 305,40, '#6F684C');
+}
+
+// ─── Agent Skins (drawn in pre-scale space after ctx translate+scale) ─────────
+function drawSkin(sex, age, shirtColor) {
+  // sex: 'M'|'F'   age: 'Y'|'M'|'O'
+  if (age === 'Y' && sex === 'M') {
+    circ(0,0,30,'#FEEAB7');
+    semi(0,0,30,20,'#B63C27');
+    semi(5,0,20,20,'#ECC11C');
+    semi(10,0,10,20,'#2D61B4');
+    tri(0,32,30,32,15,62,shirtColor);
+
+  } else if (age === 'Y' && sex === 'F') {
+    circ(0,0,30,'#FEEAB7');
+    fillRect(0,10,5,20,'black');
+    fillRect(25,10,5,20,'black');
+    semi(0,0,30,20,'#B63C27');
+    semi(5,0,20,20,'#ECC11C');
+    semi(10,0,10,20,'#2D61B4');
+    tri(15,32,0,62,30,62,shirtColor);
+
+  } else if (age === 'M' && sex === 'M') {
+    circ(0,0,30,'#FEEAB7');
+    semi(0,0,30,20,'black');
+    fillRect(11,20,8,4,'black');            // moustache
+    tri(0,32,30,32,15,62,shirtColor);      // shirt
+    fillRect(10,32,10,3,'#1D2440');        // tie knot
+    fillRect(13,32,4,18,'#1D2440');        // tie body
+    tri(13,50,15,54,17,50,'#1D2440');      // tie tip
+
+  } else if (age === 'M' && sex === 'F') {
+    circ(0,0,30,'#FEEAB7');
+    semi(0,0,30,20,'black');
+    fillRect(0,10,5,20,'black');
+    fillRect(25,10,5,20,'black');
+    tri(15,32,0,62,30,62,shirtColor);      // dress
+    fillRect(10,32,10,3,'#1D2440');
+    fillRect(13,32,4,18,'#1D2440');
+    tri(13,50,15,54,17,50,'#1D2440');
+
+  } else if (age === 'O' && sex === 'M') {
+    circ(0,0,30,'#FEEAB7');
+    tri(0,32,30,32,15,62,shirtColor);
+    arcStroke(6,12,8,8,0,360,2,'black');   // left lens
+    arcStroke(17,12,8,8,0,360,2,'black');  // right lens
+    ln(14,16,17,16,2,'black');             // bridge
+    ln(2,12,6,14,2,'black');              // left arm
+    ln(25,14,28,13,2,'black');            // right arm
+    semi(5,0,21,10,'#808080');            // gray hair
+
+  } else { // 'O' 'F'
+    circ(0,0,30,'#FEEAB7');
+    tri(15,32,0,62,30,62,shirtColor);
+    arcStroke(6,12,8,8,0,360,2,'black');
+    arcStroke(17,12,8,8,0,360,2,'black');
+    ln(14,16,17,16,2,'black');
+    ln(2,12,6,14,2,'black');
+    ln(25,14,28,13,2,'black');
+    semi(0,0,30,20,'#808080');
+    fillRect(0,10,5,20,'#808080');
+    fillRect(25,10,5,20,'#808080');
+  }
+}
+
+// ─── Agent ────────────────────────────────────────────────────────────────────
+class Agent {
+  constructor(x, y, sex, age, color) {
+    this.x = x; this.y = y;
+    this.sex = sex;   // 'M' | 'F'
+    this.age = age;   // 'Y' | 'M' | 'O'
+    this.color = color;
+    this.highlight = false;
+    this.highlightEnd = 0;
+    const angle = Math.random() * Math.PI * 2;
+    this.dx = Math.cos(angle);
+    this.dy = Math.sin(angle);
+  }
+
+  get cx() { return this.x + AGENT_W / 2; }
+  get cy() { return this.y + AGENT_H / 2; }
+
+  setColor(c) {
+    if (c !== this.color) {
+      this.highlight = true;
+      this.highlightEnd = Date.now() + 250;
+    }
+    this.color = c;
+  }
+
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.scale(SKIN_SCALE, SKIN_SCALE);
+    drawSkin(this.sex, this.age, this.color);
+    ctx.restore();
+
+    if (this.highlight) {
+      if (Date.now() < this.highlightEnd) {
+        ctx.strokeStyle = 'yellow';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(this.x, this.y, AGENT_W, AGENT_H);
+      } else {
+        this.highlight = false;
+      }
+    }
+  }
+
+  update(agents, speed) {
+    const s = 5 * speed;
+    this.x += this.dx * s;
+    this.y += this.dy * s;
+    this._bounce();
+    this.x = clamp(this.x, PLT.x, PLT.x + PLT.w - AGENT_W);
+    this.y = clamp(this.y, PLT.y, PLT.y + PLT.h - AGENT_H);
+    this._collide(agents);
+  }
+
+  _bounce() {
+    const { x: px, y: py, w: pw, h: ph } = PLT;
+    if (this.x <= px) {
+      this.x = px;
+      this._randDir(-Math.PI/4, Math.PI/4);
+    } else if (this.x + AGENT_W >= px + pw) {
+      this.x = px + pw - AGENT_W;
+      this._randDir(3*Math.PI/4, 5*Math.PI/4);
+    }
+    if (this.y <= py) {
+      this.y = py;
+      this._randDir(Math.PI/4, 3*Math.PI/4);
+    } else if (this.y + AGENT_H >= py + ph) {
+      this.y = py + ph - AGENT_H;
+      this._randDir(5*Math.PI/4, 7*Math.PI/4);
+    }
+  }
+
+  _randDir(min, max) {
+    const a = min + Math.random() * (max - min);
+    this.dx = Math.cos(a); this.dy = Math.sin(a);
+  }
+
+  _collide(agents) {
+    for (const o of agents) {
+      if (o === this) continue;
+      if (this.x + AGENT_W <= o.x || this.x >= o.x + AGENT_W ||
+          this.y + AGENT_H <= o.y || this.y >= o.y + AGENT_H) continue;
+      const ox = AGENT_W - Math.abs(this.cx - o.cx);
+      const oy = AGENT_H - Math.abs(this.cy - o.cy);
+      if (ox < oy) {
+        this.x += this.cx < o.cx ? -ox : ox;
+        this.dx = -this.dx;
+      } else {
+        this.y += this.cy < o.cy ? -oy : oy;
+        this.dy = -this.dy;
+      }
+    }
+  }
+
+  applyOpinion(agents, cAge, cSex) {
+    const R = 100, nP = [], nS = [];
+    for (const o of agents) {
+      if (o === this) continue;
+      const ddx = this.cx - o.cx, ddy = this.cy - o.cy;
+      if (ddx*ddx + ddy*ddy > R*R) continue;
+      if (this.color === COL_GRAY) {
+        if (o.color === COL_RED)  nP.push(o);
+        else if (o.color === COL_BLUE) nS.push(o);
+      } else {
+        if (o.color === this.color) nS.push(o);
+        else if (o.color !== COL_GRAY) nP.push(o);
+      }
+    }
+    const ip = this._influence(nP, cAge, cSex);
+    const is = this._influence(nS, cAge, cSex);
+    if (this.color === COL_GRAY) {
+      if (ip - is > 0) this.setColor(COL_RED);
+      else if (ip - is < 0) this.setColor(COL_BLUE);
+    } else {
+      if (nP.length > 0) {
+        if (this.color === COL_RED && ip - is < 0) this.setColor(COL_BLUE);
+        else if (this.color === COL_BLUE && ip - is > 0) this.setColor(COL_RED);
+      }
+    }
+  }
+
+  _influence(neighbors, cAge, cSex) {
+    if (!neighbors.length) return 0;
+    let sum = 0;
+    for (const o of neighbors) {
+      const ddx = this.cx - o.cx, ddy = this.cy - o.cy;
+      const d2 = ddx*ddx + ddy*ddy || 0.001;
+      sum += (cAge * this._ageInf(o) + cSex * this._sexInf(o)) / d2;
+    }
+    return Math.sqrt(neighbors.length) * (sum / neighbors.length);
+  }
+
+  _sexInf(o) { return this.sex === o.sex ? 1.0 : 0.5; }
+
+  _ageInf(o) {
+    const ord = { Y:0, M:1, O:2 };
+    const d = Math.abs(ord[this.age] - ord[o.age]);
+    return d === 0 ? 1.0 : d === 1 ? 0.5 : 0.0;
+  }
+}
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+// ─── Simulation State ─────────────────────────────────────────────────────────
+let agents = [];
+let running = false;
+let animId = null;
+let clockInterval = null;
+let elapsedSeconds = 0;
+let speedMultiplier = 1.0;
+let phase = 'moving';
+let phaseStart = 0;
+const speedLevels = [0.5, 0.75, 1, 2, 4];
+let speedIdx = 2;
+
+const MOVE_MS  = 9500;
+const PAUSE_MS = 250;
+
+function render() {
+  ctx.clearRect(0, 0, 600, 600);
+  drawBackground();
+  ctx.strokeStyle = 'rgba(150,150,150,0.4)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(PLT.x, PLT.y, PLT.w, PLT.h);
+  for (const a of agents) a.draw();
+}
+
+function moveAgents() {
+  for (const a of agents) a.update(agents, speedMultiplier);
+}
+
+function applyOpinions() {
+  const bal = parseInt(document.getElementById('influenceSlider').value) / 100;
+  const cAge = bal, cSex = 1 - bal;
+  for (const a of agents) a.applyOpinion(agents, cAge, cSex);
+  updateCounts();
+}
+
+function loop() {
+  if (!running) return;
+  const now = Date.now();
+  const el = now - phaseStart;
+
+  if (phase === 'moving') {
+    moveAgents();
+    render();
+    if (el >= MOVE_MS / speedMultiplier) {
+      phase = 'pausing1';
+      phaseStart = now;
+    }
+  } else if (phase === 'pausing1') {
+    if (el >= PAUSE_MS / speedMultiplier) {
+      applyOpinions();
+      render();
+      phase = 'pausing2';
+      phaseStart = now;
+    }
+  } else if (phase === 'pausing2') {
+    if (el >= PAUSE_MS / speedMultiplier) {
+      phase = 'moving';
+      phaseStart = now;
+    }
+  }
+
+  animId = requestAnimationFrame(loop);
+}
+
+function createAgents() {
+  const redN  = parseInt(document.getElementById('redField').value)  || 0;
+  const blueN = parseInt(document.getElementById('blueField').value) || 0;
+  const grayN = parseInt(document.getElementById('grayField').value) || 0;
+  const total = redN + blueN + grayN;
+
+  if (total > 60) { setMsg('Max agent is 60'); return false; }
+  if (redN === 0 && blueN === 0) { setMsg('No Red/Blue Agent'); return false; }
+
+  const maleP  = parseInt(document.getElementById('sexSlider').value);
+  const youngP = parseInt(document.getElementById('youngSlider').value);
+  const midP   = parseInt(document.getElementById('middleSlider').value);
+
+  const list = [];
+  for (let i = 0; i < redN;  i++) list.push({ color: COL_RED });
+  for (let i = 0; i < blueN; i++) list.push({ color: COL_BLUE });
+  for (let i = 0; i < grayN; i++) list.push({ color: COL_GRAY });
+  shuffle(list);
+
+  const yCount = Math.round(total * youngP / 100);
+  const mCount = Math.round(total * midP   / 100);
+  const maleCount = Math.round(total * maleP / 100);
+
+  for (let i = 0; i < total; i++) {
+    list[i].age = i < yCount ? 'Y' : i < yCount + mCount ? 'M' : 'O';
+    list[i].sex = i < maleCount ? 'M' : 'F';
+  }
+
+  agents = list.map(info => {
+    const x = PLT.x + Math.random() * (PLT.w - AGENT_W);
+    const y = PLT.y + Math.random() * (PLT.h - AGENT_H);
+    return new Agent(x, y, info.sex, info.age, info.color);
+  });
+
+  updateCounts();
+  return true;
+}
+
+function updateCounts() {
+  let r = 0, b = 0, g = 0;
+  for (const a of agents) {
+    if (a.color === COL_RED)  r++;
+    else if (a.color === COL_BLUE) b++;
+    else g++;
+  }
+  document.getElementById('redCount').textContent  = r;
+  document.getElementById('blueCount').textContent = b;
+  document.getElementById('grayCount').textContent = g;
+}
+
+function setMsg(m) {
+  document.getElementById('clockLabel').textContent = m;
+}
+
+// ─── UI Events ────────────────────────────────────────────────────────────────
+document.getElementById('playBtn').addEventListener('click', () => {
+  if (agents.length === 0) {
+    if (!createAgents()) return;
+  }
+  if (running) return;
+  running = true;
+  phase = 'moving';
+  phaseStart = Date.now();
+  document.getElementById('clockLabel').textContent = 'Time: ' + elapsedSeconds + 's';
+  clockInterval = setInterval(() => {
+    elapsedSeconds++;
+    document.getElementById('clockLabel').textContent = 'Time: ' + elapsedSeconds + 's';
+  }, 1000);
+  animId = requestAnimationFrame(loop);
+});
+
+document.getElementById('pauseBtn').addEventListener('click', () => {
+  if (!running) return;
+  running = false;
+  if (animId) cancelAnimationFrame(animId);
+  clearInterval(clockInterval);
+  render();
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  running = false;
+  if (animId) cancelAnimationFrame(animId);
+  clearInterval(clockInterval);
+  agents = [];
+  elapsedSeconds = 0;
+  document.getElementById('clockLabel').textContent = 'Time: 0s';
+  document.getElementById('redField').value  = '20';
+  document.getElementById('blueField').value = '20';
+  document.getElementById('grayField').value = '10';
+  document.getElementById('sexSlider').value      = '50';
+  document.getElementById('youngSlider').value    = '33';
+  document.getElementById('middleSlider').value   = '33';
+  document.getElementById('influenceSlider').value= '50';
+  speedIdx = 2;
+  speedMultiplier = 1.0;
+  document.getElementById('speedLabel').textContent = 'Speed: 1x';
+  document.getElementById('redCount').textContent  = '0';
+  document.getElementById('blueCount').textContent = '0';
+  document.getElementById('grayCount').textContent = '0';
+  updateAgeDisplay();
+  render();
+});
+
+document.getElementById('speedLeft').addEventListener('click', () => {
+  speedIdx = Math.max(0, speedIdx - 1);
+  speedMultiplier = speedLevels[speedIdx];
+  document.getElementById('speedLabel').textContent = 'Speed: ' + speedLevels[speedIdx] + 'x';
+});
+
+document.getElementById('speedRight').addEventListener('click', () => {
+  speedIdx = Math.min(speedLevels.length - 1, speedIdx + 1);
+  speedMultiplier = speedLevels[speedIdx];
+  document.getElementById('speedLabel').textContent = 'Speed: ' + speedLevels[speedIdx] + 'x';
+});
+
+function updateAgeDisplay() {
+  const y = parseInt(document.getElementById('youngSlider').value);
+  let m = parseInt(document.getElementById('middleSlider').value);
+  if (m > 100 - y) { m = 100 - y; document.getElementById('middleSlider').value = m; }
+  document.getElementById('ageDisplay').textContent =
+    'Young/Middle/Old: ' + y + '/' + m + '/' + (100 - y - m);
+}
+
+document.getElementById('youngSlider').addEventListener('input', updateAgeDisplay);
+document.getElementById('middleSlider').addEventListener('input', updateAgeDisplay);
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+updateAgeDisplay();
+render();
+</script>
+</body>
+</html>
