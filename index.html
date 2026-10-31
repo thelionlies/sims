@@ -9,16 +9,75 @@
     body {
       font-family: Arial, sans-serif;
       background: #e8e8e8;
-      display: flex;
-      justify-content: center;
-      align-items: center;
       min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
+
+    /* ── Nav ── */
+    nav {
+      width: 100%;
+      background: #1a1a2e;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      height: 48px;
+      gap: 24px;
+    }
+    nav .brand {
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      margin-right: 16px;
+    }
+    nav a {
+      color: #aac4ff;
+      text-decoration: none;
+      font-size: 14px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    nav a.active, nav a:hover { background: rgba(255,255,255,0.12); color: white; }
+
+    /* ── Pages ── */
+    .page { display: none; width: 100%; flex: 1; justify-content: center; align-items: center; }
+    .page.active { display: flex; }
+
+    /* ── Playground ── */
+    #page-playground { padding: 24px 0; }
     #app {
       display: flex;
       background: white;
       box-shadow: 0 2px 12px rgba(0,0,0,0.25);
     }
+
+    /* ── About ── */
+    #page-about {
+      padding: 40px 24px;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .about-card {
+      background: white;
+      max-width: 700px;
+      width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+      padding: 40px 48px;
+    }
+    .about-card h1 { font-size: 28px; color: #1a1a2e; margin-bottom: 4px; }
+    .about-card .subtitle { color: #555; font-size: 14px; margin-bottom: 28px; }
+    .about-card h2 { font-size: 16px; color: #1a1a2e; margin: 24px 0 8px; }
+    .about-card p { font-size: 14px; line-height: 1.7; color: #333; }
+    .about-card ul { font-size: 14px; line-height: 1.8; color: #333; padding-left: 20px; }
+    .legend { display: flex; gap: 24px; margin: 12px 0; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .swatch { width: 16px; height: 16px; border-radius: 3px; }
+    .ref { font-size: 12px; color: #777; border-left: 3px solid #ddd; padding-left: 12px; margin-top: 8px; line-height: 1.6; }
     canvas { display: block; }
     #panel {
       width: 200px;
@@ -53,6 +112,14 @@
   </style>
 </head>
 <body>
+
+<nav>
+  <span class="brand">SIMS</span>
+  <a id="nav-playground" class="active" onclick="showPage('playground')">Playground</a>
+  <a id="nav-about" onclick="showPage('about')">About</a>
+</nav>
+
+<div id="page-playground" class="page active">
 <div id="app">
   <canvas id="canvas" width="600" height="600"></canvas>
   <div id="panel">
@@ -151,7 +218,7 @@ function tri(x1, y1, x2, y2, x3, y3, c) {
 function semi(x, y, w, h, c) {
   const cx = x + w / 2, cy = y + h / 2, rx = w / 2, ry = h / 2;
   ctx.beginPath();
-  ctx.ellipse(cx, cy, rx, ry, 0, Math.PI, 0, true);
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI, true); // CCW from 0→π = right→top→left
   ctx.closePath();
   ctx.fillStyle = c;
   ctx.fill();
@@ -702,5 +769,70 @@ document.getElementById('middleSlider').addEventListener('input', updateAgeDispl
 updateAgeDisplay();
 render();
 </script>
+
+</div> <!-- #app -->
+</div> <!-- #page-playground -->
+
+<!-- ── About Page ───────────────────────────────────────────────────── -->
+<div id="page-about" class="page">
+  <div class="about-card">
+    <h1>SIMS</h1>
+    <p class="subtitle">Social Impact Mapping Simulation</p>
+
+    <h2>What is this?</h2>
+    <p>SIMS is an agent-based simulation of political opinion formation and polarization. Agents move around a shared space and periodically influence each other's views based on proximity, age similarity, and sex similarity.</p>
+
+    <h2>The Theory</h2>
+    <p>The simulation is based on <strong>Social Impact Theory</strong> (Nowak, Szamrej, &amp; Latané, 1990), which models social influence as a function of the <em>strength</em>, <em>immediacy</em>, and <em>number</em> of sources in one's social environment. Each agent's opinion can shift when the persuasive influence of opposing neighbors outweighs that of supporting neighbors.</p>
+
+    <h2>Agent Colors</h2>
+    <div class="legend">
+      <div class="legend-item"><div class="swatch" style="background:#B63C27"></div> Red — Party A</div>
+      <div class="legend-item"><div class="swatch" style="background:#2D61B4"></div> Blue — Party B</div>
+      <div class="legend-item"><div class="swatch" style="background:#808080"></div> Gray — Undecided</div>
+    </div>
+
+    <h2>How It Works</h2>
+    <ul>
+      <li>Agents move continuously within the simulation area.</li>
+      <li>Every ~9.5 seconds, opinion updates are applied based on neighbors within a 100px radius.</li>
+      <li>Influence is weighted by age proximity and sex similarity (adjustable via the Influence Scale slider).</li>
+      <li>An undecided (gray) agent joins whichever side exerts greater net influence.</li>
+      <li>A committed (red/blue) agent can switch sides if the opposing influence overwhelms their own side's support.</li>
+    </ul>
+
+    <h2>Controls</h2>
+    <ul>
+      <li><strong>Red / Blue / Gray agents</strong> — set starting counts (max 60 total).</li>
+      <li><strong>Sex Distribution</strong> — proportion of male vs. female agents.</li>
+      <li><strong>Age Distribution</strong> — proportion of young, middle-aged, and old agents.</li>
+      <li><strong>Influence Scale</strong> — balance between age-based and sex-based influence weight.</li>
+      <li><strong>▶ / ⏸ / ⟲</strong> — play, pause, and reset the simulation.</li>
+      <li><strong>← →</strong> — adjust simulation speed (0.5× to 4×).</li>
+    </ul>
+
+    <h2>Reference</h2>
+    <p class="ref">Nowak, A., Szamrej, J., &amp; Latané, B. (1990). From private attitude to public opinion: A dynamic theory of social impact. <em>Psychological Review, 97</em>(3), 362–376.</p>
+
+    <h2>Original Project</h2>
+    <p>Originally developed as a Java Swing desktop application for a Programming with Databases course at Ateneo de Manila University. This is a faithful web port of the original visuals and simulation logic.</p>
+    <p style="margin-top:10px">
+      <a href="https://github.com/thelionlies/SIMS-Social-Impact-Mapping-Simulation" target="_blank"
+         style="color:#2D61B4; font-size:14px;">
+        → View original Java source on GitHub
+      </a>
+    </p>
+  </div>
+</div>
+
+<script>
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+}
+</script>
+
 </body>
 </html>
