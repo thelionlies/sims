@@ -74,6 +74,34 @@
     .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
     .swatch { width: 16px; height: 16px; border-radius: 3px; }
     .ref { font-size: 12px; color: #777; border-left: 3px solid #ddd; padding-left: 12px; margin-top: 8px; line-height: 1.6; }
+    .formula-block {
+      background: #f8f8f4;
+      border: 1px solid #e0e0d8;
+      border-radius: 6px;
+      padding: 16px 20px;
+      font-size: 15px;
+      margin: 12px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      flex-wrap: wrap;
+      text-align: center;
+    }
+    .frac {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      vertical-align: middle;
+      font-size: 13px;
+    }
+    .frac .num { border-bottom: 1px solid #333; padding-bottom: 2px; }
+    .frac .den { padding-top: 2px; }
+    .mean { font-style: italic; }
+    .ftable { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+    .ftable th { background: #f0f0ea; text-align: left; padding: 6px 10px; border: 1px solid #ddd; }
+    .ftable td { padding: 5px 10px; border: 1px solid #eee; color: #333; }
+    .ftable tr:nth-child(even) td { background: #fafaf8; }
     canvas { display: block; }
     #page-playground { padding: 24px 0; }
     #app {
@@ -155,6 +183,7 @@
   </svg>
   <span class="brand" style="cursor:pointer" onclick="showPage('playground')">SIMS</span>
   <a id="nav-playground" class="active" onclick="showPage('playground')">Playground</a>
+  <a id="nav-formula" onclick="showPage('formula')">Formula</a>
   <a id="nav-about" onclick="showPage('about')">About</a>
 </nav>
 
@@ -811,6 +840,67 @@ render();
 
 </div> <!-- #app -->
 </div> <!-- #page-playground -->
+
+<!-- ── Formula Page ─────────────────────────────────────────────────── -->
+<div id="page-formula" class="page">
+  <div class="about-card">
+    <h1>The Formula</h1>
+    <p class="subtitle">Social Impact Theory — Nowak, Szamrej &amp; Latané (1990)</p>
+
+    <h2>Influence Computation</h2>
+    <p>For each agent, two neighbor sets are gathered within a 100px radius:</p>
+    <ul style="margin:8px 0 12px">
+      <li><strong>N<sub>P</sub></strong>: persuasive neighbors (opposing party, or Red for undecided agents)</li>
+      <li><strong>N<sub>S</sub></strong>: supportive neighbors (same party, or Blue for undecided agents)</li>
+    </ul>
+    <p>The influence of each set is:</p>
+    <div class="formula-block">
+      I &nbsp;=&nbsp; &radic;|N| &nbsp;&times;&nbsp;
+      <span class="frac">
+        <span class="num">
+          &sum;<sub style="font-size:10px">j &isin; N</sub>
+          &nbsp;
+          <span class="frac" style="font-size:12px">
+            <span class="num">c<sub>age</sub> &middot; f<sub>age</sub>(j) &nbsp;+&nbsp; c<sub>sex</sub> &middot; f<sub>sex</sub>(j)</span>
+            <span class="den">d<sub>ij</sub>&sup2;</span>
+          </span>
+        </span>
+        <span class="den">|N|</span>
+      </span>
+    </div>
+
+    <ul style="margin:0 0 12px;font-size:13px;line-height:1.9">
+      <li><strong>|N|</strong>: number of neighbors in the set</li>
+      <li><strong>c<sub>age</sub>, c<sub>sex</sub></strong>: influence weights from the slider (sum to 1)</li>
+      <li><strong>f<sub>age</sub>(j), f<sub>sex</sub>(j)</strong>: similarity scores for age and sex</li>
+      <li><strong>d<sub>ij</sub>&sup2;</strong>: squared distance between the two agents</li>
+    </ul>
+
+    <h2>Weighting Functions</h2>
+    <table class="ftable">
+      <tr><th colspan="2">f<sub>age</sub>(j) — Age proximity</th><th>Value</th></tr>
+      <tr><td colspan="2">Same age group</td><td>1.0</td></tr>
+      <tr><td colspan="2">One group apart</td><td>0.5</td></tr>
+      <tr><td colspan="2">Two groups apart</td><td>0.0</td></tr>
+    </table>
+    <table class="ftable" style="margin-top:10px">
+      <tr><th colspan="2">f<sub>sex</sub>(j) — Sex similarity</th><th>Value</th></tr>
+      <tr><td colspan="2">Same sex</td><td>1.0</td></tr>
+      <tr><td colspan="2">Different sex</td><td>0.5</td></tr>
+    </table>
+    <p style="margin-top:10px">c<sub>age</sub> and c<sub>sex</sub> are controlled by the Influence Scale slider, where c<sub>age</sub> + c<sub>sex</sub> = 1.</p>
+
+    <h2>Opinion Update Rules</h2>
+    <table class="ftable">
+      <tr><th>Agent</th><th>Condition</th><th>Outcome</th></tr>
+      <tr><td>Undecided</td><td>I<sub>P</sub> &gt; I<sub>S</sub></td><td>Joins persuasive party</td></tr>
+      <tr><td>Undecided</td><td>I<sub>P</sub> &lt; I<sub>S</sub></td><td>Joins supportive party</td></tr>
+      <tr><td>Committed</td><td>|N<sub>P</sub>| &gt; 0 and I<sub>P</sub> &gt; I<sub>S</sub></td><td>Switches party</td></tr>
+      <tr><td>Any</td><td>I<sub>P</sub> = I<sub>S</sub></td><td>No change</td></tr>
+    </table>
+    <p style="margin-top:10px">Opinion updates run every ~9.5 seconds of simulation time, at the end of each movement phase.</p>
+  </div>
+</div>
 
 <!-- ── About Page ───────────────────────────────────────────────────── -->
 <div id="page-about" class="page">
