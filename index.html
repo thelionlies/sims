@@ -26,6 +26,9 @@
       padding: 0 24px;
       height: 48px;
       gap: 24px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
     nav .brand {
       color: #1a1a2e;
@@ -33,6 +36,7 @@
       font-weight: bold;
       letter-spacing: 1px;
       margin-right: 16px;
+      white-space: nowrap;
     }
     nav a {
       color: #555;
@@ -42,6 +46,7 @@
       border-radius: 4px;
       cursor: pointer;
       transition: background 0.15s;
+      white-space: nowrap;
     }
     nav a.active, nav a:hover { background: rgba(0,0,0,0.07); color: #1a1a2e; }
 
@@ -147,6 +152,16 @@
 
     /* ── Mobile ── */
     @media (max-width: 700px) {
+      nav {
+        padding: 0 12px;
+        gap: 4px;
+        height: 44px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      nav svg { width: 24px; height: 24px; }
+      nav .brand { font-size: 15px; margin-right: 6px; }
+      nav a { font-size: 12.5px; padding: 6px 8px; }
       #page-playground { padding: 0; align-items: stretch; }
       #app { flex-direction: column; width: 100%; box-shadow: none; }
       #canvas { width: 100% !important; height: auto !important; }
@@ -169,8 +184,13 @@
       .section-title { font-size: 13px; }
       .slider-labels { font-size: 11px; }
       #ageDisplay { font-size: 12px; }
-      .about-card { padding: 24px 18px; }
+      #page-about, #page-formula { padding: 16px 12px; align-items: flex-start; }
+      .about-card { padding: 20px 16px; }
+      .about-card h1 { font-size: 22px; }
       .legend { flex-wrap: wrap; gap: 12px; }
+      .ftable { font-size: 11.5px; }
+      .ftable th, .ftable td { padding: 4px 6px; }
+      .formula-block { font-size: 12px; padding: 12px 10px; }
     }
   </style>
 </head>
@@ -607,9 +627,10 @@ class Agent {
       if (ip - is > 0) this.setColor(COL_RED);
       else if (ip - is < 0) this.setColor(COL_BLUE);
     } else {
-      if (nP.length > 0) {
-        if (this.color === COL_RED && ip - is < 0) this.setColor(COL_BLUE);
-        else if (this.color === COL_BLUE && ip - is > 0) this.setColor(COL_RED);
+      // Symmetric rule: an agent switches away when the opposing
+      // (persuasive) influence outweighs its own side's support.
+      if (nP.length > 0 && ip - is > 0) {
+        this.setColor(this.color === COL_RED ? COL_BLUE : COL_RED);
       }
     }
   }
