@@ -522,7 +522,9 @@ class Agent {
     this.age = age;   // 'Y' | 'M' | 'O'
     this.color = color;
     this.highlight = false;
+    this.highlightChangeAt = 0;
     this.highlightEnd = 0;
+    this.pendingColor = null;
     const angle = Math.random() * Math.PI * 2;
     this.dx = Math.cos(angle);
     this.dy = Math.sin(angle);
@@ -532,14 +534,23 @@ class Agent {
   get cy() { return this.y + AGENT_H / 2; }
 
   setColor(c) {
-    if (c !== this.color) {
-      this.highlight = true;
-      this.highlightEnd = Date.now() + 250;
-    }
-    this.color = c;
+    if (c === this.color) return;
+    // Highlight first (old color still showing), then swap color
+    // mid-highlight, then drop the highlight so the change is visible.
+    this.pendingColor = c;
+    const now = Date.now();
+    this.highlight = true;
+    this.highlightChangeAt = now + 150;
+    this.highlightEnd = now + 350;
   }
 
   draw() {
+    const now = Date.now();
+    if (this.pendingColor !== null && now >= this.highlightChangeAt) {
+      this.color = this.pendingColor;
+      this.pendingColor = null;
+    }
+
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.scale(SKIN_SCALE, SKIN_SCALE);
@@ -547,7 +558,7 @@ class Agent {
     ctx.restore();
 
     if (this.highlight) {
-      if (Date.now() < this.highlightEnd) {
+      if (now < this.highlightEnd) {
         ctx.strokeStyle = 'yellow';
         ctx.lineWidth = 3;
         ctx.strokeRect(this.x, this.y, AGENT_W, AGENT_H);
@@ -678,6 +689,7 @@ let speedIdx = 2;
 
 const MOVE_MS  = 9500;
 const PAUSE_MS = 250;
+const HIGHLIGHT_PAUSE_MS = 500; // long enough to show highlight -> color swap -> fade
 
 function render() {
   ctx.clearRect(0, 0, 600, 600);
@@ -686,6 +698,7 @@ function render() {
   ctx.lineWidth = 1;
   ctx.strokeRect(PLT.x, PLT.y, PLT.w, PLT.h);
   for (const a of agents) a.draw();
+  updateCounts();
 }
 
 function moveAgents() {
@@ -696,7 +709,6 @@ function applyOpinions() {
   const bal = parseInt(document.getElementById('influenceSlider').value) / 100;
   const cAge = bal, cSex = 1 - bal;
   for (const a of agents) a.applyOpinion(agents, cAge, cSex);
-  updateCounts();
 }
 
 function loop() {
@@ -706,7 +718,6 @@ function loop() {
 
   if (phase === 'moving') {
     moveAgents();
-    render();
     if (el >= MOVE_MS / speedMultiplier) {
       phase = 'pausing1';
       phaseStart = now;
@@ -714,17 +725,17 @@ function loop() {
   } else if (phase === 'pausing1') {
     if (el >= PAUSE_MS / speedMultiplier) {
       applyOpinions();
-      render();
       phase = 'pausing2';
       phaseStart = now;
     }
   } else if (phase === 'pausing2') {
-    if (el >= PAUSE_MS / speedMultiplier) {
+    if (el >= HIGHLIGHT_PAUSE_MS / speedMultiplier) {
       phase = 'moving';
       phaseStart = now;
     }
   }
 
+  render();
   animId = requestAnimationFrame(loop);
 }
 
